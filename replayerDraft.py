@@ -17,45 +17,96 @@ from random import randint
 
 
 sentPack = []
-resvPack = []
+recvPack = []
 
 client = '192.168.56.1'
 server = '192.168.56.129'
 
+###### TODO: a problem with replaying SYN: the checksum fails although I delete the Ether layer, andIP and TCP checksums
+
+
+def announce(packet):
+    print 'Sending SYN from ' + packet['IP'].src + ':' + str(packet['TCP'].sport) + ' ot ' + packet['IP'].dst + ':' + str(packet['TCP'].dport)
+
 def sendSYN(synPack):
-    print 'Sending SYN'
     newSYN = sinOverride(synPack)
+    if newSYN['TCP'].sport not in range(0,1024):
+        newSYN['TCP'].sport = randint(1025, 65536) #this part must be handled later by the tcp session manager class
+
+    newSYN['IP'].src = client
+    newSYN['IP'].dst = server
+    
+    announce(newSYN)
     resp = sr1(newSYN)
-    sentPack.append(newSYN)
-    recvPack.append(resp)
+
+    ### Record in tcp session manager
     return resp
 
 
-def sendACK(srvResP):
+def sendACK(srvResP): ##### TODO: replace with Bot that Acks the received messages and logs in tcp session manager
     print 'sending ACK'
     if srvResP['TCP'].flags != 16L:
         #send the ack
         ackPack = IP(src = srvResP['IP'].dst, dst = srvResP['IP'].src) / TCP(flags = 16L, seq = srvResP.ack, ack = srvResP.seq+1, dport = srvResP['TCP'].sport, sport = srvResP['TCP'].dport)
+        announce(ackPack)
         send(ackPack)
 
 
 
 def replayPCAP(pcaps):
-    for p in pcaps:
-        if p['TCP'].flags == 1L:
-            sendSYN(p)
-        elif p.src == server:
-            sendACK(p)
+    for pkt in pcaps:
+        if pkt is None:
+            continue
         else:
-            p['IP'].src = client
-            p['IP'].dst = server
-            send(p)
+            print 'preparing packet'
+            p = pkt['IP'] / pkt['TCP']
+            del p.chksum
+            del p[TCP].chksum
             
+        if p['TCP'].flags == 2L:
+            print p.summary(), 'is a SYN packet.'
+            sendSYN(p)
+            
+        elif p['IP'].src == server:
+            # TODO: write a class that handles TCP session management that keeps track of the sender port: randomize it if its not a reserved port
+            # TODO: write an ackBot that acknowledges received packets and returns seq/ack numbers to the TCP session manager
+            # Do nothing... let the ackBot handle it.
+            pass
+            
+        else:
+            # check if the packet is not an ACK
+            # write a sender that sends the packet if it is not an ACK packet (since ackBot handles that job)
+            # the sender should get the seq/ack numbers from the ackbot
+            # p['IP'].src = client
+            # p['IP'].dst = server
+            # send(p)
+            pass
+        
     # if pack is a SYN do: sendSYN
-    # if its a received packet then do: sendACK
+    # if its a received packet then send Ack using ackBot
     # if its an ACK then ignore
     
-        
+# def pktSender(p):
+#     packet = p['IP'] / p['TCP']
+
+#     packet['IP'].src = client
+#     packet['IP'].dst = server
+
+def testPacket(packet):
+    
+    print packet.chksum, packet[IP].chksum, packet[TCP].chksum,
+    
+
+class SessionMngr():
+    ## TODO
+    ## Holds source IP address : port num
+    ## Holds destination IP address port num
+    ## Holds protocol
+    ## Holds sent and received packets (headers only)
+    ## holds client tcp session seq num
+    ## holds server tcp session seq num
+    pass
+
         
 def sinOverride(packet):
     pack = packet
@@ -63,8 +114,14 @@ def sinOverride(packet):
     return pack
 
 def main ():
-    pcapfile = rdpcap('redirectDiffPort.pcap')
-    replayPCAP(pcapfile)
+    pcapfile = rdpcap('redirectDiffPort2.pcap')
+    
+    # for p in pcapfile:
+    #     if p['TCP'].flags == 2L:
+    #         print p.show()
+            
+    replayPCAP(pcapfile[0])
+
 
 if __name__ == '__main__':
     main()

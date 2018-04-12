@@ -1,10 +1,22 @@
 #!/usr/bin/python
 import sys
 from scapy.all import * 
+from random import randint
 
-def sort_pcap_session(pcap_file):
+# TCP flags 
+SYN_FLAG = 2l
+ACK_FLAG = 16l
+FIN_ACK_FLAG = 17l
+PSH_ACK_FLAG = 24l
+
+# Dummy text for replayer to wait for response.
+RESPONSE_FROM_SERVER = "Wait for server to respond"
+
+# Returns a list representation of a dictionary that is sorted.
+def sort_pcap_session(conn_dict):
     # To sort pcap sessions according to timestamp.
-    sorted_sessions =  sorted(p.iteritems(), key=lambda (k,v): (v[0].time,k))
+    sorted_sessions =  sorted(conn_dict.iteritems(), key=lambda (k,v): (v[0].time,k))
+    
     return sorted_sessions
 
 # Generate new FID from a packet.
@@ -38,14 +50,13 @@ def generate_new_ID(packet):
 # @returns: String of Scapy command to send similar packet.
 def generate_command(packet):
     IP_Layer = packet['IP']
-    command = "IP(src={}, proto={}, dst={})".format(IP_Layer.src, IP_Layer.proto, IP_Layer.dst)
+    command = "IP(proto={}, dst={})".format(IP_Layer.proto, IP_Layer.dst)
     
     if packet.haslayer("UDP"):
-        command +="/UDP"
+        command +="/UDP(dport = {})".format(packet['UDP'].dport)
     else:
-        command +="/TCP"    
-    
-    command +="(dport={})".format(packet.dport)
+        command +="/TCP(dport={}, flags = {})".format(packet['TCP'].dport,
+                                            packet['TCP'].flags)
 
     if (packet.getlayer(3)):
         payload = "/" + packet.getlayer(3).command()
@@ -54,17 +65,20 @@ def generate_command(packet):
     print command
 
 def commands_from_dict(conn_dict):
+    conn_dict = sort_pcap_session(conn_dict)
     command_list = []
-    for ID in conn_dict.keys():
-        print ("********")
+    for ID, messageList in conn_dict:
+        print ("**** [New connection] ****")
         print (ID)
         SIP = ID.split(":")[0]
-        for message in conn_dict[ID]:
-            if message['IP'].src == SIP:
-                print("-------")
+        if messageList[0].haslayer('TCP'):
+            print ("-Initiate New TCP handshake-")
+        for message in messageList:
+            IP_layer = message['IP']
+            AP_layer = message.getlayer(2)
+            if IP_layer.src == SIP and AP_layer.flags != SYN_FLAG and AP_layer.flags != ACK_FLAG and AP_layer != FIN_ACK_FLAG:
+                # Connections that are not ACKs and Handshake
                 stringCommand = generate_command(message)
-
-
 
 # Parses all packets in a PCAP file into connections, defined
 # by their FID. Messages are defined as the packets sent and received
@@ -78,9 +92,6 @@ def parse_into_connections(pcapfile):
     id_stack = []
     conn_dict = {}
 
-    #TCP flags
-    SYN_FLAG = 2l
-    FIN_ACK_FLAG = 17l
 
     for packet in all_packets:
         #print ("[DEBUG] Stack size: ", len(id_stack))

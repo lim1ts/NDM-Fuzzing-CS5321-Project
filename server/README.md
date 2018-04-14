@@ -1,7 +1,6 @@
 Env: ubuntu 14.04, python 2.7.4, flask 0.12.2
 
-The files must be in the correct folders as per the folders in this drive
-Run python pyserver.py to start the server. 
+Don't need to copy files anywhere, just keep them in the same folder as pyserver and run python pyserver.py to start the server. 
 It will connect to port 4000.
 
 On the client side, access using server’s ip:port in the browser

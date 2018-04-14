@@ -20,13 +20,14 @@ We store each dialog in a dictionary datastructure, using the FID as key, and th
 ### Usage
 ` ./replayerDraft.py`
 Draft module to replay a series of traffic.
+#### NOT COMPLETE
 
 ## replayerDraft2.py
 ### Usage 
-`./ replayerDraft2.py`
+`./ replayerDraft2.py <pcap_file>`
 Module (draft) used to replay a series of traffic. Will interpret output from `parse.py`.
 
-Uses python sockets to make connections. 
+Difference from first replayer is that this uses python sockets to make connections. Dependent on `parse.py`, uses it as a import module.
 
 
 ## test.py

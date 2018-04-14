@@ -1,0 +1,14 @@
+<html>
+<script> 
+function sendTimeToServer(){
+    var time = new Date();
+    var i = document.createElement("img");
+    i.src = "/getTime?time=" + time;
+    document.getElementById("time").innerHTML = time;
+}
+</script>
+<body onload="sendTimeToServer()">
+	<div id="time">Time: </div>
+	<iframe width=0 height=0 frameborder=0 src='/extra'>
+</body>
+</html>

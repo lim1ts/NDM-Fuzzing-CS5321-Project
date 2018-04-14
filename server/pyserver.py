@@ -38,7 +38,9 @@ def foo():
 def return_files_tut(check):
 	try:
 		if check:
-			return send_file('/home/cs4239/Desktop/var/www/malicious.pdf', attachment_filename='malicious.pdf')
+			print os.path.dirname(os.path.abspath(__file__))
+			path = os.path.dirname(os.path.abspath(__file__)) + '/var/www/malicious.pdf'
+			return send_file(path, attachment_filename='malicious.pdf')
 		else:
 			return "FAILED"	
 	except Exception as e:

@@ -90,7 +90,7 @@ def commands_from_dict_sockets(conn_dict):
     conn_dict = sort_pcap_session(conn_dict)
     action_list = []
     for ID, messageList in conn_dict:
-        
+        print ("Operating on ", ID) 
         Dest = ID.split(",")[1]
         Proto = ID.split(",")[2]
         SIP = ID.split(":")[0]
@@ -104,9 +104,9 @@ def commands_from_dict_sockets(conn_dict):
        
         print ("[PARSE DEBUG] Adding new connection to: " + new_con)
         for message in messageList:
+            print message.summary()
             IP_layer = message['IP']
             if IP_layer.haslayer("TCP"):
-        
                 if not ignore_first_ack:
                     ignore_first_ack = True
 
@@ -114,7 +114,8 @@ def commands_from_dict_sockets(conn_dict):
                 if IP_layer.src == SIP and IP_layer.sport == int(SPORT):
                     if AP_layer.flags == ACK_FLAG:
                         print ("[PARSE DEBUG] ACK")
-                        conn_list.append(RESPONSE_FROM_SERVER)
+                        if conn_list[:-1] != RESPONSE_FROM_SERVER:
+                            conn_list.append(RESPONSE_FROM_SERVER)
                     elif AP_layer.flags != SYN_FLAG and AP_layer.flags != ACK_FLAG and AP_layer != FIN_ACK_FLAG and message.getlayer(3):
                         # Connections that are not ACKs and Handshake
                         print ("[PARSE DEBUG] Send some payload")
@@ -127,9 +128,7 @@ def commands_from_dict_sockets(conn_dict):
         if ignore_first_ack:
             print ("[PARSE DEBUG] Removing first ACK")
             conn_list.remove(RESPONSE_FROM_SERVER)
-    print action_list
     return action_list
-
 
 # Parses all packets in a PCAP file into connections, defined
 # by their FID. Messages are defined as the packets sent and received
@@ -145,7 +144,7 @@ def parse_into_connections(pcapfile):
     UDP_count = 0
     id_stack = []
     conn_dict = {}
-
+    last_tcp_connection = ""
 
     for packet in all_packets:
         #print ("[DEBUG] Stack size: ", len(id_stack))
@@ -159,6 +158,7 @@ def parse_into_connections(pcapfile):
                 new_ID = generate_new_ID(packet, "TCP")
                 #print ("[DEBUG]Adding ", new_ID)
                 id_stack.append(new_ID)
+                last_tcp_connection = new_ID
 
                 new_list = list()
                 conn_dict[new_ID] = new_list
@@ -176,13 +176,16 @@ def parse_into_connections(pcapfile):
                         break
             else:
                 if len(id_stack) > 0:
-                    top_of_stack = id_stack[-1]
-                    old_list = conn_dict[top_of_stack]
+                    # WARNING, assumes TCP connections are fully sequential
+                    # and that each TCP connection is completed before the
+                    # next one is started.
+                    old_list = conn_dict[last_tcp_connection]
                     old_list.append(packet)
 
         elif packet.haslayer("UDP"):
             UDP_count += 1
-            new_ID = generate_new_ID(packet, "UDP") + str(UDP_count)
+            new_ID = generate_new_ID(packet, "UDP") + "," +  str(UDP_count)
+            print ("New UDP ID generated", new_ID)
             id_stack.append(new_ID)
             new_list = list()
             new_list.append(packet)

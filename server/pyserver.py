@@ -3,6 +3,7 @@ import time
 import os
  
 app = Flask(__name__)
+boole = False
  
 @app.route('/')
 def home():
@@ -14,6 +15,8 @@ def bounce1():
 
 @app.route("/bounce2")
 def bounce2():
+    global boole
+    boole = True 
     return render_template('bounce2.html')
 
 @app.route("/extra")
@@ -24,7 +27,8 @@ def extra():
 def getTime():
     print("browser time: ", request.args.get("time"))
     print("server time : ", time.strftime('%A %B, %d %Y %H:%M:%S'));
-    return return_files_tut(True)
+    global boole
+    return return_files_tut(boole)
 
 @app.route('/redirect')
 def hello():
@@ -39,8 +43,8 @@ def return_files_tut(check):
 	try:
 		if check:
 			print os.path.dirname(os.path.abspath(__file__))
-			path = os.path.dirname(os.path.abspath(__file__)) + '/var/www/malicious.pdf'
-			return send_file(path, attachment_filename='malicious.pdf')
+			path = os.path.dirname(os.path.abspath(__file__)) + '/var/www/cprogram.zip'
+			return send_file(path, attachment_filename='cprogram.zip')
 		else:
 			return "FAILED"	
 	except Exception as e:

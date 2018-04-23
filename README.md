@@ -38,3 +38,18 @@ Output: - (this code replays the dialog in 301.pcap and doesn't output anything)
 
 ### redirectDiffPort.pcap 301.pcap
 One of the example pcap files that is used to test the replayability of dialogs.
+
+
+## Lists of replayers that may work
+TCPReplay
+
+bittwist - replays captured wireshark packets
+Installation: sudo apt-get install bittwist
+Usage: bittwist -i [eth] [pcap file]
+
+Playcap - GUI that replays captured wireshark packets (need to manually run the replay)
+Installation: 
+cmake .
+make
+sudo make install
+Usage: playcap [pcap file] (note: the GUI will pop out and u have to manually click the run button, hence may not be able to automate with playcap)

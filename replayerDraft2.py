@@ -1,6 +1,10 @@
 #!/usr/env python
+# Scapy
 from scapy.all import *
+# Python
 from random import randint
+import time
+import socket
 # Custom modules
 import parse
 
@@ -11,17 +15,19 @@ RESPONSE_FROM_SERVER = parse.RESPONSE_FROM_SERVER
 # @params destination IP, Port and source port
 # @returns the socket made
 def new_socket_connection(dip,dp,sp):
-    print ("[DEBUG] Attempting to create new connection")
+    print ("[DEBUG] Attempting to create new connection to " + dip)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #sock.bind(('',int(sp)))
-    # Comment out the above, and de-comment below
+    # Comment out the former, and de-comment latter 
     # if you want OS to auto-alloc source port
+    #sock.bind(('',int(sp)))
     sock.bind(('',0))
+
     try:
         sock.connect((dip, int(dp)))
         print ("[DEBUG] Socket created and connected")
     except Exception as e:
         print e
+    
     return sock
 
 # Accepts a python socket and waits for a receive on this socket.
@@ -29,8 +35,9 @@ def new_socket_connection(dip,dp,sp):
 # @returns the reply that the socket received
 def wait_receive(sock):
     print ("[DEBUG] SERVER RESPONSE WAIT")
-    reply = sock.recv(1024)
+    reply = sock.recv(4096)
     print ("[DEBUG] RESPONSE RECEIVED")
+    print reply
     return reply
 
 # Replays a PCAP file [BUGGED, DO NOT USE]
@@ -42,6 +49,7 @@ def replay_PCAP(pcaps):
     
     packetlist = []
     for traffic in traffic_list:
+        time.sleep(1)
         Dest = traffic[0].split(",")
         SPort = traffic[0].split(",")[2]
         
@@ -51,14 +59,14 @@ def replay_PCAP(pcaps):
         #sniff_filters = "((ip src host %s and dst host %s) and (src port %s or dst port %s)) and not ip multicast" % (DIP, DIP, SPort, DPort)
         #conn_sniff = sniff(filter=sniff_filters, count=10)
         conn = new_socket_connection(DIP, DPort, SPort)
-        for item in traffic:
+        for item in traffic[1:]:
             if item == RESPONSE_FROM_SERVER:
                 # todo: settle extra ack from handshake
                 wait_receive(conn)
             else:
                 print ("[DEBUG] SENDING PAYLOAD" + item)
                 try:
-                    conn.sendall(item)
+                    conn.send(item)
                     print ("[DEBUG] Payload sent!")
                 except Exception as e:
                     print e

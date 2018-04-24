@@ -165,6 +165,8 @@ def parse_into_connections(pcapfile):
                 new_list.append(packet)
 
             elif p_flag == FIN_ACK_FLAG:
+                # TODO: Need to handle both side closing? Both sends FINACK?
+                # Happens only on loopback interfaces only I think.
                 top_of_stack = id_stack.pop()
                 old_list = conn_dict[top_of_stack]
                 old_list.append(packet)

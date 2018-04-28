@@ -1,5 +1,6 @@
 # NDM-Fuzzing-CS5321-Project
-
+### TODO:
+    Use proper logging and stop using stupid print outs
 ## Parse.py 
 ### Usage
 ` ./parse.py <pcap.file>`

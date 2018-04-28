@@ -33,6 +33,7 @@ def ddmin_level1(commandList):
                 for each_set in subsets:
                     #TODO read into pcap?
                     complement = [c for c in commandList if c not in each_set]
+		    complement_reaching = 1
                     if test_replay(complement):
                         print "[Minimizer Debug] New goal-reaching configuration"
                         print "New list: ", complement

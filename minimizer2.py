@@ -38,12 +38,12 @@ def ddmin_level1(commandList):
                         print "New list: ", complement
                         granularity_n = max(granularity_n-1, 2)
                         print "[Minimizer Debug] Granularity:%d" % granularity_n
-                        complement_reaching = 0
+                        complement_reaching = 1
                         commandList = complement
                         command_len = len(commandList)
                         break
                     
-                    if not complement_reaching:
+                    if complement_reaching:
                         if granularity_n == command_len:
                             break
                         else:

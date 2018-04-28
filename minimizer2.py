@@ -110,7 +110,7 @@ def minimize(pcap_file):
     #TODO
 
     print "Final configuration found. Launching capture thread to write pcap file"
-    capture_replay(minimized_connections)
+    #capture_replay(minimized_connections)
     print "Capture complete!"
 
 def main():

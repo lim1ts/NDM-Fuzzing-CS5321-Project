@@ -5,12 +5,17 @@ from scapy.all import *
 from random import randint
 import time
 import socket
+import select
 # Custom modules
 import parse
 
 RESPONSE_FROM_SERVER = parse.RESPONSE_FROM_SERVER
-HARDCODED_FILE_GOAL = open("server/var/www/cprogram.zip", "rb")
-HARDCODED_GOAL_CONTENTS = HARDCODED_FILE_GOAL.read()
+# CHANGE THIS
+# Goal = cprogram.zip
+# HARDCODED_FILE_GOAL = open("server/var/www/cprogram.zip", "rb")
+# HARDCODED_GOAL_CONTENTS = HARDCODED_FILE_GOAL.read()
+# Goal = text from heartbleed.
+HARDCODED_GOAL_CONTENTS = "You_Cannot_Guess_Me_I_Am_Secret_and_Sensitive"
 
 # Creates a new connection using sockets.
 # @params destination IP, Port and source port
@@ -22,11 +27,11 @@ def new_socket_connection(dip,dp,sp):
     # if you want OS to auto-alloc source port
     #sock.bind(('',int(sp)))
     sock.bind(('',0))
-
     try:
         sock.connect((dip, int(dp)))
         print ("[DEBUG] Socket created and connected")
     except Exception as e:
+        print ("Unable to connect to host!")
         print e
     
     return sock
@@ -34,17 +39,19 @@ def new_socket_connection(dip,dp,sp):
 # Accepts a python socket and waits for a receive on this socket.
 # @params socket to receive on
 # @returns the reply that the socket received
-def wait_receive(sock):
+def wait_receive(sock, is_goal):
     print ("[DEBUG] SERVER RESPONSE WAIT")
-    reply = sock.recv(8192)
-    time.sleep(1)
-    print ("[DEBUG] RESPONSE RECEIVED")
-    is_goal= False
-    if HARDCODED_GOAL_CONTENTS in reply:
-        is_goal = True
-        print "[DEBUG] GOAL IS REACHED"
-        print is_goal
-    print reply 
+    try:
+        reply = sock.recv(4096)
+        time.sleep(1)
+        print ("[DEBUG] RESPONSE RECEIVED")
+        if HARDCODED_GOAL_CONTENTS in reply:
+            is_goal = True
+            print "[DEBUG] GOAL IS REACHED"
+            print is_goal
+        print reply
+    except socket.timeout:
+        pass
     return is_goal
 
 # Replays a PCAP file 
@@ -58,6 +65,7 @@ def replay_PCAP(pcaps):
 # Replays an action list of commands
 # Similarly, creates sockets, wait for replies and sends payloads.
 def replay_list(traffic_list):
+    print traffic_list
     is_reaching_goal = False
 
     for traffic in traffic_list:
@@ -70,16 +78,17 @@ def replay_list(traffic_list):
             DPort = Dest[0].split(":")[1]
         
             conn = new_socket_connection(DIP, DPort, SPort)
+            conn.settimeout(3)
             for item in traffic[1:]:
-               if item == RESPONSE_FROM_SERVER:
-                    # todo: settle extra ack from handshake
-                    is_reaching_goal = wait_receive(conn)
-               else:
+                if item == RESPONSE_FROM_SERVER:
+                    is_reaching_goal = wait_receive(conn, is_reaching_goal)
+                else:
                     print ("[DEBUG] SENDING PAYLOAD" + item)
                     try:
                         conn.send(item)
                         print ("[DEBUG] Payload sent!")
                     except Exception as e:
+                        print "payload sending failed"
                         print e
     return is_reaching_goal
 

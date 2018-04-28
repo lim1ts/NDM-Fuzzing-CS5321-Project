@@ -1,6 +1,8 @@
 #!/usr/env/python
 import sys
 import subprocess
+import time, threading
+from scapy.all import *
 from subprocess import PIPE
 # Custom modules
 import replayerDraft2
@@ -70,6 +72,28 @@ def splitTestSet(commandList,granularity_n):
         assert len(s) > 0
     return subsets
 
+def traffic_sniff(e):
+    print "Starting sniffer..."
+    traffic= sniff(iface="vboxnet0", stop_filter=lambda p: e.is_set())
+    wrpcap("min_candidate.pcap", traffic)
+
+    print "Stopped sniffing"
+
+def capture_replay(minimized_connections):
+    e = threading.Event()
+    traffic_sniffer = threading.Thread(target=traffic_sniff, args=(e,))
+    traffic_sniffer.start()
+    time.sleep(5)
+    test_replay(minimized_connections)
+    e.set()
+
+    while True:
+        traffic_sniffer.join(2)
+        if traffic_sniffer.is_alive():
+            print "Cleaning up..."
+        else:
+            break
+
 def convert_pcap_to_action(pcap_file):
     pcap_conn_dict = parse.parse_into_connections(pcap_file)
     actions = parse.commands_from_dict_sockets(pcap_conn_dict)
@@ -85,9 +109,8 @@ def minimize(pcap_file):
     #TODO
 
     print "Final configuration found. Launching capture thread to write pcap file"
-    #TODO  capture packets from another thread!
-    test_replay(minimized_connections)
-
+    capture_replay(minimized_connections)
+    print "Capture complete!"
 
 def main():
     if len(sys.argv) != 2:

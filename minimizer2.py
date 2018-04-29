@@ -163,6 +163,15 @@ def capture_replay(minimized_connections):
         else:
             break
 
+# DIRTY HACK
+# TODO REDO THIS PLEASE
+def capture_replay_tcpdump(minimized_connections):
+      p = subprocess.Popen(['tcpdump', '-n', '(dst port 5001 or src port 5001)', '-i', 'lo', '-w', 'mininum_valid.pcap'])
+      print ("Starting up sniffer, please wait.")
+      time.sleep(5)
+      test_replay(minimized_connections)
+      p.terminate()
+
 def convert_pcap_to_action(pcap_file):
     pcap_conn_dict = parse.parse_into_connections(pcap_file)
     actions = parse.commands_from_dict_sockets(pcap_conn_dict)
@@ -178,7 +187,7 @@ def minimize(pcap_file):
     if minimized_connections:
         minimized_connections_level2 = ddmin_level2(minimized_connections)
         print "Final configuration found. Starting capture thread to write .pcap"
-        capture_replay(minimized_connections_level2)
+        capture_replay_tcpdump(minimized_connections_level2)
         print "Capture complete!"
     else:
         print "Unable to minimize. Quitting!"
